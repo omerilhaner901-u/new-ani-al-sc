@@ -1,0 +1,89 @@
+-- LocalScript (StarterGui içine koy)
+
+local plr = game.Players.LocalPlayer
+local RS  = game:GetService("ReplicatedStorage")
+local Knit = RS.Packages._Index:FindFirstChild("sleitnick_knit@1.5.1").knit.Services
+local RunService = game:GetService("RunService")
+
+-- Remotelar
+local LIST = {
+    {"Train", Knit.TrainService.RE.RunTrain, { [1] = "Treadmill_1_7" }},
+    {"Win"  , Knit.FightService.RE.GetWinsEvent, { [1] = "WinGate_16", [2] = Vector3.new(1829.5889892578125,780.9266357421875,-170409.765625) }},
+    {"Egg"  , Knit.EggHatchService.RE.Hatch, { [1] = "Egg_1_4", [2] = 1 }},
+    {"Fruit", Knit.FruitShopService.RE.BuyFruitEvent, { [1] = "Fruit_4" }},
+}
+
+-- Kaç kere çağrı yapsın (örn. 100 → 60FPS’de saniyede 6000)
+local CALLS_PER_FRAME = 100  
+
+-- GUI
+local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 220, 0, 260)
+frame.Position = UDim2.new(0.35, 0, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.Active, frame.Draggable = true, true
+
+-- Başlık
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundColor3 = Color3.fromRGB(25,25,25)
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Text = "INSANE Spam GUI ("..CALLS_PER_FRAME.."x per frame)"
+
+-- Buton yapıcı
+local function makeBtn(text, order)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(1, -20, 0, 35)
+    btn.Position = UDim2.new(0, 10, 0, 40 + (order * 38))
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    return btn
+end
+
+-- Remote butonları (aşırı hızlı spam)
+for i, item in ipairs(LIST) do
+    local name, remote, args = item[1], item[2], item[3]
+    local btn = makeBtn(name.." OFF", i-1)
+    local running = false
+    local conn
+
+    btn.MouseButton1Click:Connect(function()
+        running = not running
+        btn.Text = name .. (running and " ON" or " OFF")
+        if running then
+            conn = RunService.Heartbeat:Connect(function()
+                for j = 1, CALLS_PER_FRAME do
+                    remote:FireServer(unpack(args))
+                end
+            end)
+        else
+            if conn then conn:Disconnect() conn = nil end
+        end
+    end)
+end
+
+-- Anti-AFK
+local antiBtn = makeBtn("Anti-AFK OFF", #LIST)
+local vu = game:GetService("VirtualUser")
+local afkConn
+local antiOn = false
+
+local function enableAntiAFK()
+    if afkConn then afkConn:Disconnect() end
+    afkConn = plr.Idled:Connect(function()
+        vu:CaptureController()
+        vu:ClickButton2(Vector2.new())
+    end)
+end
+
+local function disableAntiAFK()
+    if afkConn then afkConn:Disconnect() afkConn = nil end
+end
+
+antiBtn.MouseButton1Click:Connect(function()
+    antiOn = not antiOn
+    antiBtn.Text = "Anti-AFK " .. (antiOn and "ON" or "OFF")
+    if antiOn then enableAntiAFK() else disableAntiAFK() end
+end)

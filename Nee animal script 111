@@ -1,89 +1,91 @@
--- LocalScript (StarterGui içine koy)
+--// GUI Script with Password (dev), Train + Win, Draggable
+-- StarterGui içine LocalScript olarak koy
 
-local plr = game.Players.LocalPlayer
-local RS  = game:GetService("ReplicatedStorage")
-local Knit = RS.Packages._Index:FindFirstChild("sleitnick_knit@1.5.1").knit.Services
-local RunService = game:GetService("RunService")
+-- ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+screenGui.Name = "SecretGui"
 
--- Remotelar
-local LIST = {
-    {"Train", Knit.TrainService.RE.RunTrain, { [1] = "Treadmill_1_7" }},
-    {"Win"  , Knit.FightService.RE.GetWinsEvent, { [1] = "WinGate_16", [2] = Vector3.new(1829.5889892578125,780.9266357421875,-170409.765625) }},
-    {"Egg"  , Knit.EggHatchService.RE.Hatch, { [1] = "Egg_1_4", [2] = 1 }},
-    {"Fruit", Knit.FruitShopService.RE.BuyFruitEvent, { [1] = "Fruit_4" }},
-}
+-- Password Frame
+local passwordFrame = Instance.new("Frame")
+passwordFrame.Size = UDim2.new(0, 220, 0, 140)
+passwordFrame.Position = UDim2.new(0.5, -110, 0.5, -70)
+passwordFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+passwordFrame.Parent = screenGui
+passwordFrame.Active = true
+passwordFrame.Draggable = true
 
--- Kaç kere çağrı yapsın (örn. 100 → 60FPS’de saniyede 6000)
-local CALLS_PER_FRAME = 100  
+local passwordBox = Instance.new("TextBox")
+passwordBox.Size = UDim2.new(0, 200, 0, 30)
+passwordBox.Position = UDim2.new(0, 10, 0, 20)
+passwordBox.PlaceholderText = "Enter Password"
+passwordBox.Text = ""
+passwordBox.Parent = passwordFrame
 
--- GUI
-local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 220, 0, 260)
-frame.Position = UDim2.new(0.35, 0, 0.3, 0)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-frame.Active, frame.Draggable = true, true
+local enterButton = Instance.new("TextButton")
+enterButton.Size = UDim2.new(0, 200, 0, 30)
+enterButton.Position = UDim2.new(0, 10, 0, 80)
+enterButton.Text = "Enter"
+enterButton.Parent = passwordFrame
 
--- Başlık
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundColor3 = Color3.fromRGB(25,25,25)
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.Text = "INSANE Spam GUI ("..CALLS_PER_FRAME.."x per frame)"
+-- Main Frame (hidden)
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 200, 0, 150)
+mainFrame.Position = UDim2.new(0.5, -100, 0.5, -75)
+mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+mainFrame.Visible = false
+mainFrame.Parent = screenGui
+mainFrame.Active = true
+mainFrame.Draggable = true
 
--- Buton yapıcı
-local function makeBtn(text, order)
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(1, -20, 0, 35)
-    btn.Position = UDim2.new(0, 10, 0, 40 + (order * 38))
-    btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
-    return btn
-end
+local trainButton = Instance.new("TextButton")
+trainButton.Size = UDim2.new(0, 180, 0, 40)
+trainButton.Position = UDim2.new(0, 10, 0, 20)
+trainButton.Text = "Start Train"
+trainButton.Parent = mainFrame
 
--- Remote butonları (aşırı hızlı spam)
-for i, item in ipairs(LIST) do
-    local name, remote, args = item[1], item[2], item[3]
-    local btn = makeBtn(name.." OFF", i-1)
-    local running = false
-    local conn
+local winButton = Instance.new("TextButton")
+winButton.Size = UDim2.new(0, 180, 0, 40)
+winButton.Position = UDim2.new(0, 10, 0, 80)
+winButton.Text = "Start Win"
+winButton.Parent = mainFrame
 
-    btn.MouseButton1Click:Connect(function()
-        running = not running
-        btn.Text = name .. (running and " ON" or " OFF")
-        if running then
-            conn = RunService.Heartbeat:Connect(function()
-                for j = 1, CALLS_PER_FRAME do
-                    remote:FireServer(unpack(args))
-                end
-            end)
-        else
-            if conn then conn:Disconnect() conn = nil end
-        end
-    end)
-end
-
--- Anti-AFK
-local antiBtn = makeBtn("Anti-AFK OFF", #LIST)
-local vu = game:GetService("VirtualUser")
-local afkConn
-local antiOn = false
-
-local function enableAntiAFK()
-    if afkConn then afkConn:Disconnect() end
-    afkConn = plr.Idled:Connect(function()
-        vu:CaptureController()
-        vu:ClickButton2(Vector2.new())
-    end)
-end
-
-local function disableAntiAFK()
-    if afkConn then afkConn:Disconnect() afkConn = nil end
-end
-
-antiBtn.MouseButton1Click:Connect(function()
-    antiOn = not antiOn
-    antiBtn.Text = "Anti-AFK " .. (antiOn and "ON" or "OFF")
-    if antiOn then enableAntiAFK() else disableAntiAFK() end
+-- Password Check
+enterButton.MouseButton1Click:Connect(function()
+    if passwordBox.Text == "dev" then
+        passwordFrame.Visible = false
+        mainFrame.Visible = true
+    else
+        passwordBox.Text = "Wrong!"
+    end
 end)
+
+-- Train Function
+local function runTrain()
+    local args = {
+        [1] = "WinGate_4",
+        [2] = Vector3.new(1811.9639892578125, 780.9266357421875, -5386.14990234375)
+    }
+    for i = 1, 20 do
+        game:GetService("ReplicatedStorage").Packages._Index:FindFirstChild("sleitnick_knit@1.5.1")
+            .knit.Services.FightService.RE.GetWinsEvent:FireServer(unpack(args))
+        wait(0.1)
+    end
+end
+
+-- Win Function
+local function runWin()
+    local args = {
+        [1] = "WinGate_4",
+        [2] = Vector3.new(1811.9639892578125, 780.9266357421875, -5386.14990234375)
+    }
+    for i = 1, 20 do
+        game:GetService("ReplicatedStorage").Packages._Index:FindFirstChild("sleitnick_knit@1.5.1")
+            .knit.Services.FightService.RE.GetWinsEvent:FireServer(unpack(args))
+        wait(0.05)
+    end
+end
+
+-- Button Connections
+trainButton.MouseButton1Click:Connect(runTrain)
+winButton.MouseButton1Click:Connect(runWin)
